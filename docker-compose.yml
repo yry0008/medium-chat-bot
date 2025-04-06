@@ -1,0 +1,31 @@
+version: '3'
+
+services:
+  medium-chat-bot:
+    image: ghcr.io/yry0008/medium-chat-bot:latest
+    container_name: medium-chat-bot
+    build:
+      context: .
+      dockerfile: Dockerfile
+    env_file:
+      - .env
+    depends_on:
+      - redis
+    networks:
+      - medium-chat-bot-net
+  redis:
+    image: redis:latest
+    container_name: redis
+    ports:
+      - "6379"
+    volumes:
+      - redis_data:/data
+    networks:
+      - medium-chat-bot-net
+
+networks:
+  medium-chat-bot-net:
+    driver: bridge
+volumes:
+  redis_data:
+    driver: local
