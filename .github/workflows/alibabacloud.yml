@@ -25,9 +25,9 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
-      - name: Stop other same workflow
+      - name: Stop all waiting jobs about this workflow file
         run: |
-          gh run list --workflow alibabacloud.yml --status waiting | grep -v ${{ github.run_id }} | awk '{print $1}' | xargs -I {} gh run cancel {}
+          gh run list --workflow alibabacloud.yml --status waiting --json databaseId --jq '.[] | .databaseId' | while read -r id; do gh run cancel "$id"; done
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
   deploy:
