@@ -40,9 +40,9 @@ jobs:
       run: |
         aliyun sae PUT /pop/v1/sam/app/stopApplication --AppId '${{ vars.APP_ID }}' --header "Content-Type=application/json;" --body "{}"
 
-    # 2.2 Sleep for 5 seconds
-    - name: Sleep for 5 seconds
-      run: sleep 5
+    # 2.2 Sleep for 20 seconds
+    - name: Sleep for 20 seconds
+      run: sleep 20
 
     # 2.3 Deploy the new version
     - name: Deploy the new version
