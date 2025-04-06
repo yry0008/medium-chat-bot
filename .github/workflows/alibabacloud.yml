@@ -19,6 +19,8 @@ permissions:
 
 jobs:
   deploy:
+    if: ${{ github.event.workflow_run.conclusion == 'success' }}
+    name: Deploy to Alibaba Cloud SAE    
     environment: deployment
     runs-on: ubuntu-latest
     # need after the job 'build' in workflow 'docker-publish.yml'    
@@ -50,6 +52,12 @@ jobs:
     - name: Deploy the new version
       run: |
         aliyun sae PUT /pop/v1/sam/app/startApplication --AppId '${{ vars.APP_ID }}' --header "Content-Type=application/json;" --body "{}"
-
+  build-failure:
+    if: ${{ github.event.workflow_run.conclusion == 'failure' }}
+    name: Build Failure
+    runs-on: ubuntu-latest
+    steps:
+      - name: Notify Build Failure
+        run: echo "Build failed. Please check the logs."
 
     
