@@ -1,0 +1,53 @@
+name: Deploy to SAE
+
+on:
+  workflow_run:
+    workflows: ["Docker"]
+    types:
+      - completed
+    branches:
+      - main
+
+# Environment variables available to all jobs and steps in this workflow.
+env:
+  IMAGE_NAME: ${{ github.repository }}
+  TAG: ${{ github.sha }}
+
+permissions:
+  contents: read
+
+
+jobs:
+  deploy:
+    environment: deployment
+    runs-on: ubuntu-latest
+    # need after the job 'build' in workflow 'docker-publish.yml'    
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v4
+
+    # 1.1 Install Aliyun CLI
+    - name: Install Aliyun CLI
+      uses: aliyun/setup-aliyun-cli-action@v1
+
+    # 1.2 Setup Aliyun credentials
+    - name: Setup Aliyun credentials
+      run: |
+        aliyun configure set --access-key-id ${{ secrets.ACCESS_KEY_ID }}   --access-key-secret ${{ secrets.ACCESS_KEY_SECRET }}   --region ${{ vars.REGION_ID }}   --profile AkProfile   --mode AK   --language en
+
+    # 2.1 Stop the existing application
+    - name: Stop the existing application
+      run: |
+        aliyun sae PUT /pop/v1/sam/app/stopApplication --AppId '${{ vars.APP_ID }}' --header "Content-Type=application/json;" --body "{}"
+
+    # 2.2 Sleep for 5 seconds
+    - name: Sleep for 5 seconds
+      run: sleep 5
+
+    # 2.3 Deploy the new version
+    - name: Deploy the new version
+      run: |
+        aliyun sae PUT /pop/v1/sam/app/startApplication --AppId '${{ vars.APP_ID }}' --header "Content-Type=application/json;" --body "{}"
+
+
+    
