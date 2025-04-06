@@ -306,14 +306,14 @@ def handle_photo_group(message: types.Message):
             reply_message_id = reply_message.message_id
         else:
             # Check if the bot is mentioned
-            if not message.entities:
+            if not message.caption_entities:
                 return
             is_mentioned = False
-            for entity in message.entities:
+            for entity in message.caption_entities:
                 if entity.type == 'mention':
                     # If the bot is mentioned, mark it
                     # Extract the mentioned username from the message
-                    mentioned_user = message.text[entity.offset:entity.offset + entity.length]
+                    mentioned_user = message.caption[entity.offset:entity.offset + entity.length]
                     if mentioned_user == f"@{bot.get_me().username}":
                         is_mentioned = True
                     break
