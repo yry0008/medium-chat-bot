@@ -3,6 +3,7 @@ import logging
 import redis
 import openai
 from telebot import TeleBot, types
+from telebot.types import Message
 from telebot.util import content_type_media
 from dotenv import load_dotenv
 
@@ -44,8 +45,10 @@ REDIS_DB = os.getenv("REDIS_DB", 0)
 
 # Initialize components
 openai.api_key = OPENAI_API_KEY
+
 redis_client = redis.Redis(host=REDIS_HOST, port=REDIS_PORT, db=REDIS_DB, username=REDIS_USERNAME, password=REDIS_PASSWORD)
-bot = TeleBot(TELEGRAM_TOKEN)
+
+bot = TeleBot(TELEGRAM_TOKEN,use_class_middlewares=True)
 
 # Logging configuration
 logging.basicConfig(
@@ -58,6 +61,29 @@ openai_client = openai.OpenAI(
     base_url=OPENAI_API_BASE,
     api_key=OPENAI_API_KEY
 )
+
+from telebot.handler_backends import BaseMiddleware
+from telebot.util import update_types as telebot_update_types
+class ProgramLockMiddleware(BaseMiddleware):
+    def __init__(self):
+        self.update_types = telebot_update_types
+        self.update_sensitive = False
+
+    def pre_process(self, message:Message, data):
+        message_id = message.message_id
+        chat_id = message.chat.id
+        res = redis_client.set(f"process:{chat_id}.{message_id}", 1,get=True)
+        if res is not None:
+            # this message has been processed
+            raise Exception("Message already processed")
+        
+    def post_process(self, message:Message, data, exception):
+        message_id = message.message_id
+        chat_id = message.chat.id
+        redis_client.delete(f"process:{chat_id}.{message_id}")
+
+# Register the middleware
+bot.setup_middleware(ProgramLockMiddleware())
 
 def get_chat_history(chat_id: str, message_id: str) -> list:
     """Retrieve chat history"""
