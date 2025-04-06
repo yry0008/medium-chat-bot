@@ -36,9 +36,11 @@ jobs:
         aliyun configure set --access-key-id ${{ secrets.ACCESS_KEY_ID }}   --access-key-secret ${{ secrets.ACCESS_KEY_SECRET }}   --region ${{ vars.REGION_ID }}   --profile AkProfile   --mode AK   --language en
 
     # 2.1 Stop the existing application
+    # should ignore the error because the application may not be running
     - name: Stop the existing application
       run: |
         aliyun sae PUT /pop/v1/sam/app/stopApplication --AppId '${{ vars.APP_ID }}' --header "Content-Type=application/json;" --body "{}"
+      continue-on-error: true
 
     # 2.2 Sleep for 20 seconds
     - name: Sleep for 20 seconds
