@@ -353,7 +353,11 @@ def handle_photo_group(message: types.Message):
             text="⚠️ Request failed, please try again later"
         )
         
-    
+@bot.message_handler(commands=['help'])
+def handle_help(message: types.Message):
+    """Handle /help command"""
+    reply_text = "You can send me text messages or photos. I will respond to your queries. If you want to continue a conversation, just reply to the message send by me and I will continue the conversation. You can also mention me in group chats to get my attention."
+    bot.reply_to(message, reply_text)
 
 if __name__ == "__main__":
     bot.infinity_polling()
