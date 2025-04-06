@@ -27,7 +27,7 @@ jobs:
         uses: actions/checkout@v4
       - name: Stop other same workflow
         run: |
-          gh run list --workflow alibabacloud.yml --status in_progress | grep -v ${{ github.run_id }} | awk '{print $1}' | xargs -I {} gh run cancel {}
+          gh run list --workflow alibabacloud.yml --status waiting | grep -v ${{ github.run_id }} | awk '{print $1}' | xargs -I {} gh run cancel {}
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
   deploy:
