@@ -1,0 +1,9 @@
+# python cache
+__pycache__
+# venv
+venv
+.venv
+# environment variables
+.env
+# git
+.git
