@@ -8,6 +8,7 @@ from dotenv import load_dotenv
 
 import re
 import base64
+import json
 
 if os.path.exists(".env"):
     load_dotenv()
@@ -121,7 +122,89 @@ def handle_start(message: types.Message):
 def handle_help(message: types.Message):
     """Handle /help command"""
     reply_text = "You can send me text messages or photos. I will respond to your queries. If you want to continue a conversation, just reply to the message send by me and I will continue the conversation. You can also mention me in group chats to get my attention."
+    
+    if message.chat.id < 0:
+        reply_text += "\n\nYou can also use the following commands in this group:\n"
+        reply_text += "/addfriend - Add friend request that allow friends find you in this group.\n"
+        reply_text += "/deletefriend - Delete your friend request\n"
+        reply_text += "/searchfriend - Search for a friend\n"
     bot.reply_to(message, reply_text)
+
+@bot.message_handler(commands=['addfriend'])
+def handle_addfriend(message: types.Message):
+    """Handle /addfriend command"""
+    if message.chat.id > 0:
+        bot.reply_to(message, "This command is not available in private chats.")
+        return
+    # find if there is already a friend request
+    friend_request = redis_client.lrange(f"addfriend.{message.chat.id}", 0, -1)
+    if friend_request:
+        for friend in friend_request:
+            if message.from_user.id == int(friend):
+                bot.reply_to(message, "You have already sent a friend request.")
+                return
+    redis_client.rpush(f"addfriend.{message.chat.id}", f"{message.from_user.id}")
+    reply_text = "Your friend request has been sent."
+    bot.reply_to(message, reply_text)
+
+@bot.message_handler(commands=['deletefriend'])
+def handle_deletefriend(message: types.Message):
+    """Handle /deletefriend command"""
+    if message.chat.id > 0:
+        bot.reply_to(message, "This command is not available in private chats.")
+        return
+    # find if there is already a friend request
+    friend_request = redis_client.lrange(f"addfriend.{message.chat.id}", 0, -1)
+    if friend_request:
+        for friend in friend_request:
+            if message.from_user.id == int(friend):
+                redis_client.lrem(f"addfriend.{message.chat.id}", 1, f"{message.from_user.id}")
+                bot.reply_to(message, "Your friend request has been deleted.")
+                return
+    reply_text = "You have not sent a friend request."
+    bot.reply_to(message, reply_text)
+
+@bot.message_handler(commands=['searchfriend'])
+def handle_searchfriend(message: types.Message):
+    """Handle /searchfriend command"""
+    if message.chat.id > 0:
+        bot.reply_to(message, "This command is not available in private chats.")
+        return
+    
+    friend_request = redis_client.lrange(f"addfriend.{message.chat.id}", 0, -1)
+    if friend_request:
+        friend_request = [int(friend) for friend in friend_request]
+        if message.from_user.id in friend_request:
+            friend_request.remove(message.from_user.id)
+        if len(friend_request) == 0:
+            bot.reply_to(message, "No friends found.")
+            return
+        # using GPT to select a friend
+        prompt = "You are a friend selector. I will give you a list of friends' IDs. Please randomly select one of them and return the ID. The list of friends' IDs is in json format. You can only reply the ID of the selected friend, do not add any other text. "
+        friend_request_json = json.dumps(friend_request)
+        messages = [
+            {"role":"system", "content": prompt},
+            {"role":"user", "content": friend_request_json}
+        ]
+        response_text = generate_response_stream(messages)
+        # check if the response is a number
+        if response_text.isdigit():
+            friend_id = int(response_text)
+            # get the friend information
+            friend_info = bot.get_chat(friend_id)
+            friend_first_name = friend_info.first_name if friend_info.first_name else ""
+            friend_last_name = friend_info.last_name if friend_info.last_name else ""
+            friend_name = friend_first_name + " " + friend_last_name
+            user_text = f"[{friend_name}](tg://user?id={friend_id})"
+            reply_text = f"There is a friend for you: {user_text}"
+            # send a message to the friend
+            bot.reply_to(message, reply_text, parse_mode="MarkdownV2")
+        else:
+            reply_text = "No friends found."
+
+    else:
+        reply_text = "No friends found."
+        bot.reply_to(message, reply_text)
 
 @bot.message_handler(content_types=['text'], chat_types=['private'])
 def handle_message(message: types.Message):
