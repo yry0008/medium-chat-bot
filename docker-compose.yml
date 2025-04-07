@@ -13,6 +13,7 @@ services:
       - redis
     networks:
       - medium-chat-bot-net
+    restart: always
   redis:
     image: redis:latest
     container_name: redis
@@ -22,6 +23,7 @@ services:
       - redis_data:/data
     networks:
       - medium-chat-bot-net
+    restart: always
 
 networks:
   medium-chat-bot-net:
